@@ -30,7 +30,7 @@ Ralph is already initialized. Report the status:
 3. Check for existing `progress.txt`: show last few lines if it has content
 4. **Suggest next steps** based on state:
    - No prd.json → "Run `/prd` to create a PRD for your feature"
-   - prd.json exists with incomplete stories → "Run `./scripts/ralph/ralph.sh` to continue"
+   - prd.json exists with incomplete stories → "Run `./scripts/ralph/ralph.sh` to continue (iterations auto-calculated)"
    - All stories complete → "All stories are done. Create a new PRD with `/prd` for the next feature"
 
 **Do NOT re-download or overwrite existing files.**
@@ -93,5 +93,5 @@ your-project/
 ## Notes
 
 - The `prd.json` file is NOT downloaded — you create it for your specific feature
-- Workflow: `/ralph-init` → `/prd` → `/ralph` → `./scripts/ralph/ralph.sh`
+- Workflow: `/ralph-init` → `/prd` → `/ralph` → `./scripts/ralph/ralph.sh` (iterations auto-calculated from prd.json)
 - Discord webhook notifications can be configured via `RALPH_WEBHOOK_URL` environment variable

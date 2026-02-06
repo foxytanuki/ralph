@@ -1,12 +1,11 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop
-# Usage: ./ralph.sh [--webhook URL] [max_iterations]
+# Usage: ./ralph.sh [--webhook URL]
 # Environment: RALPH_WEBHOOK_URL or DISCORD_WEBHOOK_URL - Discord webhook for notifications
 
 set -e
 
 # Parse arguments
-MAX_ITERATIONS=10
 WEBHOOK_URL="${RALPH_WEBHOOK_URL:-${DISCORD_WEBHOOK_URL:-}}"
 
 while [[ $# -gt 0 ]]; do
@@ -20,10 +19,6 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      # Assume it's max_iterations if it's a number
-      if [[ "$1" =~ ^[0-9]+$ ]]; then
-        MAX_ITERATIONS="$1"
-      fi
       shift
       ;;
   esac
@@ -115,7 +110,25 @@ if [ ! -f "$PROGRESS_FILE" ]; then
   echo "---" >> "$PROGRESS_FILE"
 fi
 
-echo "Starting Ralph - Max iterations: $MAX_ITERATIONS"
+# Calculate max iterations from prd.json
+# = remaining stories + review checkpoints + pending review + buffer
+if [ ! -f "$PRD_FILE" ]; then
+  echo "Error: No prd.json found at $PRD_FILE"
+  exit 1
+fi
+
+REMAINING_STORIES=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE")
+REVIEW_CHECKPOINTS=$(jq '[.userStories[] | select(.passes == false and .reviewAfter == true)] | length' "$PRD_FILE")
+REVIEW_PENDING=$(jq 'if .reviewPending == true then 1 else 0 end' "$PRD_FILE")
+# +2 buffer for retries
+MAX_ITERATIONS=$(( REMAINING_STORIES + REVIEW_CHECKPOINTS + REVIEW_PENDING + 2 ))
+
+if [ "$REMAINING_STORIES" -eq 0 ] && [ "$REVIEW_PENDING" -eq 0 ]; then
+  echo "All stories already complete. Nothing to do."
+  exit 0
+fi
+
+echo "Starting Ralph - $REMAINING_STORIES stories remaining, $REVIEW_CHECKPOINTS review checkpoints, max $MAX_ITERATIONS iterations"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""

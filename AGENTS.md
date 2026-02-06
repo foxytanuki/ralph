@@ -13,8 +13,8 @@ cd flowchart && npm run dev
 # Build the flowchart
 cd flowchart && npm run build
 
-# Run Ralph
-./ralph.sh [max_iterations]
+# Run Ralph (iterations auto-calculated from prd.json)
+./ralph.sh
 ```
 
 ## Key Files

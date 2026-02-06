@@ -100,10 +100,10 @@ This creates `prd.json` with user stories structured for autonomous execution, i
 ### 4. Run Ralph
 
 ```bash
-./scripts/ralph/ralph.sh [max_iterations]
+./scripts/ralph/ralph.sh
 ```
 
-Default is 10 iterations. Tool defaults to `claude`.
+Iterations are calculated automatically from prd.json (remaining stories + review checkpoints + buffer).
 
 With Discord notifications:
 ```bash
