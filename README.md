@@ -33,7 +33,6 @@ This creates `scripts/ralph/` with all necessary files.
 mkdir -p scripts/ralph
 cp /path/to/ralph/ralph.sh scripts/ralph/
 cp /path/to/ralph/CLAUDE.md scripts/ralph/
-cp /path/to/ralph/prompt.md scripts/ralph/
 chmod +x scripts/ralph/ralph.sh
 ```
 
@@ -109,10 +108,10 @@ Default is 10 iterations. Tool defaults to `claude`.
 With Discord notifications:
 ```bash
 # Via environment variable
-DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..." ./scripts/ralph/ralph.sh --tool claude
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..." ./scripts/ralph/ralph.sh
 
 # Or via command line
-./scripts/ralph/ralph.sh --tool claude --webhook "https://discord.com/api/webhooks/..."
+./scripts/ralph/ralph.sh --webhook "https://discord.com/api/webhooks/..."
 ```
 
 Ralph will:
