@@ -16,8 +16,12 @@ Create detailed Product Requirements Documents that are clear, actionable, and s
 2. Ask 3-5 essential clarifying questions (with lettered options)
 3. Generate a structured PRD based on answers
 4. Save to `tasks/prd-[feature-name].md`
+5. Present the PRD to the user for confirmation
+6. Once the user confirms, run `/codex-review` on the PRD file to check quality
+7. If the review finds issues, refine the PRD and save again
+8. Guide the user to the next step: `/ralph` to convert to prd.json
 
-**Important:** Do NOT start implementing. Just create the PRD.
+**Important:** Do NOT start implementing. This skill produces a reviewed, high-quality PRD.
 
 ---
 
@@ -229,6 +233,45 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 
 ---
 
+## Step 3: User Confirmation
+
+After saving the PRD, present a summary to the user:
+
+1. Show the list of user stories (ID + title only) as an overview
+2. Ask the user: "Does this PRD look good? Any changes before I run a quality review?"
+3. If the user requests changes, apply them and save again
+4. Once the user confirms, proceed to Step 4
+
+---
+
+## Step 4: Quality Review with codex-review
+
+After user confirmation, run `/codex-review` on the PRD file to catch quality issues.
+
+The review should check for:
+- **Ambiguous acceptance criteria** — vague wording like "works correctly" or "good UX"
+- **Story size** — stories too large to complete in one iteration
+- **Missing dependencies** — stories that depend on later stories
+- **Missing criteria** — stories lacking "Typecheck passes" or browser verification for UI
+- **Scope gaps** — functional requirements not covered by any user story
+- **Unclear requirements** — anything a junior developer or AI agent would struggle to interpret
+
+After the review:
+1. Show the review findings to the user
+2. If there are issues, fix them in the PRD and save
+3. Confirm: "PRD reviewed and refined."
+
+---
+
+## Step 5: Next Steps
+
+After the PRD is reviewed and saved, guide the user:
+
+1. Show: "PRD is ready. Next step: run `/ralph` to convert this PRD to prd.json for Ralph execution."
+2. If `scripts/ralph/` does not exist, also mention: "You'll need to run `/ralph-init` first to set up Ralph in this project."
+
+---
+
 ## Checklist
 
 Before saving the PRD:
@@ -239,3 +282,6 @@ Before saving the PRD:
 - [ ] Functional requirements are numbered and unambiguous
 - [ ] Non-goals section defines clear boundaries
 - [ ] Saved to `tasks/prd-[feature-name].md`
+- [ ] User confirmed the PRD
+- [ ] Ran `/codex-review` and addressed findings
+- [ ] Guided user to next step (`/ralph`)

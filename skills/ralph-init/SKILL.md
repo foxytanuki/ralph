@@ -1,27 +1,47 @@
 ---
 name: ralph-init
-description: "Initialize Ralph in the current repository. Sets up scripts/ralph/ with all necessary files. Use when starting a new Ralph project. Triggers on: setup ralph, init ralph, initialize ralph, ralph init."
+description: "Initialize Ralph in the current repository. Auto-detects existing setup. Triggers on: setup ralph, init ralph, initialize ralph, ralph init."
 user-invocable: true
 ---
 
 # Ralph Setup
 
-Initialize the Ralph autonomous agent system in the current repository.
+Initialize the Ralph autonomous agent system in the current repository. Auto-detects if already initialized.
 
 ---
 
-## What This Does
+## Step 0: Detect Existing Installation
 
-1. Creates `scripts/ralph/` directory in the current working directory
-2. Downloads the following files from GitHub:
-   - `ralph.sh` - Main execution script
-   - `CLAUDE.md` - Instructions for Claude Code
-3. Makes `ralph.sh` executable
-4. Creates a starter `progress.txt`
+Before doing anything, check if Ralph is already set up:
+
+```bash
+# Check for ralph directory and key files
+ls scripts/ralph/ralph.sh scripts/ralph/CLAUDE.md 2>/dev/null
+```
+
+### If BOTH files exist:
+
+Ralph is already initialized. Report the status:
+
+1. Show: "Ralph is already initialized in this project."
+2. Check for existing `prd.json`: `ls scripts/ralph/prd.json 2>/dev/null`
+   - If exists: show the current project name and branch from prd.json
+   - If not: note that no PRD is configured yet
+3. Check for existing `progress.txt`: show last few lines if it has content
+4. **Suggest next steps** based on state:
+   - No prd.json → "Run `/prd` to create a PRD for your feature"
+   - prd.json exists with incomplete stories → "Run `./scripts/ralph/ralph.sh` to continue"
+   - All stories complete → "All stories are done. Create a new PRD with `/prd` for the next feature"
+
+**Do NOT re-download or overwrite existing files.**
+
+### If files are MISSING:
+
+Proceed to Step 1 (fresh installation).
 
 ---
 
-## Instructions
+## Step 1: Install Ralph
 
 Execute these commands to set up Ralph:
 
@@ -44,17 +64,19 @@ echo "---" >> scripts/ralph/progress.txt
 
 ---
 
-## After Setup
+## Step 2: Confirm and Guide
 
-1. Create a PRD for your feature (use `/prd` skill)
-2. Convert it to `prd.json` (use `/ralph` skill) - save to `scripts/ralph/prd.json`
-3. Run Ralph: `./scripts/ralph/ralph.sh 10`
+After installation completes, confirm success and guide the user:
+
+1. Verify files exist: `ls -la scripts/ralph/`
+2. Show: "Ralph initialized successfully."
+3. **Guide to next step:** "Run `/prd` to create a PRD for your feature."
 
 ---
 
 ## Directory Structure
 
-After running this skill, you'll have:
+After setup, you'll have:
 
 ```
 your-project/
@@ -62,7 +84,7 @@ your-project/
 │   └── ralph/
 │       ├── ralph.sh        # Run this to start Ralph
 │       ├── CLAUDE.md       # Claude Code instructions
-│       ├── prd.json        # Your PRD (create with /ralph skill)
+│       ├── prd.json        # Your PRD (create with /prd → /ralph)
 │       └── progress.txt    # Progress log (auto-managed)
 ```
 
@@ -70,6 +92,6 @@ your-project/
 
 ## Notes
 
-- The `prd.json` file is NOT downloaded - you need to create it for your specific feature
-- Use `/prd` to generate a PRD, then `/ralph` to convert it to `prd.json`
-- Discord webhook notifications can be configured via `RALPH_WEBHOOK_URL` environment variable (add to `.bashrc`/`.zshrc` for global config)
+- The `prd.json` file is NOT downloaded — you create it for your specific feature
+- Workflow: `/ralph-init` → `/prd` → `/ralph` → `./scripts/ralph/ralph.sh`
+- Discord webhook notifications can be configured via `RALPH_WEBHOOK_URL` environment variable

@@ -14,6 +14,10 @@ Converts existing PRDs to the prd.json format that Ralph uses for autonomous exe
 
 Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph directory.
 
+**Prerequisite:** The PRD should already be reviewed (via `/prd` which includes `/codex-review`). If the user provides an unreviewed PRD, suggest running `/prd` first.
+
+**After conversion:** Confirm the prd.json is saved and guide the user: "Ready to go. Run `./scripts/ralph/ralph.sh` to start Ralph."
+
 ---
 
 ## Output Format

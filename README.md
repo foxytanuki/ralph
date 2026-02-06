@@ -68,27 +68,37 @@ Available skills after installation:
 
 ## Workflow
 
-### 1. Create a PRD
+### 1. Initialize Ralph
 
-Use the PRD skill to generate a detailed requirements document:
+```
+/ralph-init
+```
+
+Auto-detects if Ralph is already set up. If not, creates `scripts/ralph/` with all necessary files. If already initialized, shows current status and suggests next steps.
+
+### 2. Create a PRD
 
 ```
 /prd [your feature description]
 ```
 
-Answer the clarifying questions. The skill saves output to `tasks/prd-[feature-name].md`.
+The skill will:
+1. Ask 3-5 clarifying questions
+2. Generate a structured PRD
+3. Save to `tasks/prd-[feature-name].md`
+4. Ask for your confirmation
+5. Run `/codex-review` on the PRD to check quality (ambiguous criteria, oversized stories, missing dependencies)
+6. Refine based on review feedback
 
-### 2. Convert PRD to Ralph format
-
-Use the Ralph skill to convert the markdown PRD to JSON:
+### 3. Convert PRD to Ralph format
 
 ```
 /ralph convert tasks/prd-[feature-name].md to prd.json
 ```
 
-This creates `prd.json` with user stories structured for autonomous execution.
+This creates `prd.json` with user stories structured for autonomous execution, including `reviewAfter` flags at phase boundaries.
 
-### 3. Run Ralph
+### 4. Run Ralph
 
 ```bash
 ./scripts/ralph/ralph.sh [max_iterations]
@@ -112,9 +122,10 @@ Ralph will:
 4. Run quality checks (typecheck, tests)
 5. Commit if checks pass
 6. Update `prd.json` to mark story as `passes: true`
-7. Append learnings to `progress.txt`
-8. Repeat until all stories pass or max iterations reached
-9. Send Discord notification on completion or max iterations
+7. **If the story has `reviewAfter: true`, run a code review checkpoint in the next iteration**
+8. Append learnings to `progress.txt`
+9. Repeat until all stories pass or max iterations reached
+10. Send Discord notification on completion or max iterations
 
 ## Key Files
 
