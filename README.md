@@ -8,233 +8,117 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 [Read my in-depth article on how I use Ralph](https://x.com/ryancarson/status/2008548371712135632)
 
-## Prerequisites
+## Quick Start
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed (`npm install -g @anthropic-ai/claude-code`)
-- `jq` installed (`brew install jq` on macOS)
-- A git repository for your project
+Prerequisites: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`npm install -g @anthropic-ai/claude-code`), `jq`, a git repo for your project.
 
-## Setup
+```bash
+# 1. Install skills
+git clone https://github.com/foxytanuki/ralph.git
+cp -r ralph/skills/prd ~/.claude/skills/
+cp -r ralph/skills/ralph ~/.claude/skills/
+cp -r ralph/skills/ralph-init ~/.claude/skills/
 
-### Option 1: Use the ralph-init skill (recommended)
-
-If you have the Ralph skills installed, run in your target project:
-
+# 2. Initialize (run in your project)
+cd /path/to/your-project
+```
 ```
 /ralph-init
 ```
+```
+# 3. Create & convert PRD
+/prd [your feature description]
+/ralph convert tasks/prd-[feature-name].md to prd.json
 
-This creates `scripts/ralph/` with all necessary files.
+# 4. Run
+./scripts/ralph/ralph.sh
+```
 
-### Option 2: Copy to your project manually
+That's it. Ralph will loop through each user story, implement it, and commit.
+
+## How It Works
+
+1. **`/ralph-init`** sets up `scripts/ralph/` in your project (`ralph.sh`, `CLAUDE.md`, `progress.txt`)
+2. **`/prd`** generates a structured PRD with clarifying questions and quality review
+3. **`/ralph`** converts the PRD to `prd.json` with prioritized user stories
+4. **`ralph.sh`** spawns fresh Claude Code instances in a loop, one story per iteration
+
+Each iteration picks the highest priority incomplete story, implements it, runs quality checks, commits, and updates `prd.json`. When all stories pass, Ralph exits.
+
+### Each Iteration = Fresh Context
+
+The only memory between iterations is:
+- Git history (commits from previous iterations)
+- `progress.txt` (learnings and context)
+- `prd.json` (which stories are done)
+
+### Key Design Principles
+
+- **Small stories** — Each story must fit in one context window. "Add a filter dropdown" is good. "Build the entire dashboard" is too big.
+- **CLAUDE.md updates** — Ralph writes learnings to `CLAUDE.md` files so future iterations (and humans) benefit from discovered patterns and gotchas.
+- **Feedback loops** — Typecheck, tests, and CI must stay green. Broken code compounds across iterations.
+- **Review checkpoints** — Stories with `reviewAfter: true` trigger a code review before continuing.
+- **Stop condition** — When all stories have `passes: true`, Ralph outputs `<promise>COMPLETE</promise>` and the loop exits.
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `ralph.sh` | Bash loop that spawns fresh Claude Code instances |
+| `CLAUDE.md` | Prompt template for Claude Code |
+| `prd.json` | User stories with `passes` status |
+| `progress.txt` | Append-only learnings for future iterations |
+| `skills/` | Skills for PRD generation, conversion, and init |
+
+## Flowchart
+
+[![Ralph Flowchart](ralph-flowchart.png)](https://snarktank.github.io/ralph/)
+
+**[View Interactive Flowchart](https://snarktank.github.io/ralph/)**
+
+## Discord Notifications
 
 ```bash
-# From your project root
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..." ./scripts/ralph/ralph.sh
+# or
+./scripts/ralph/ralph.sh --webhook "https://discord.com/api/webhooks/..."
+```
+
+Also configurable via `RALPH_WEBHOOK_URL` environment variable.
+
+## Debugging
+
+```bash
+cat prd.json | jq '.userStories[] | {id, title, passes}'  # story status
+cat progress.txt                                            # learnings
+git log --oneline -10                                       # history
+```
+
+## Alternative Setup Methods
+
+### Plugin Marketplace
+
+If you prefer using Claude Code's plugin system instead of copying skills manually:
+
+```
+/plugin marketplace add /path/to/ralph
+/plugin install ralph-skills@ralph-marketplace
+```
+
+Skills installed this way are namespaced (e.g., `/ralph-skills:prd`).
+
+### Manual File Copy (without skills)
+
+If you only want the runner without installing skills:
+
+```bash
 mkdir -p scripts/ralph
 cp /path/to/ralph/ralph.sh scripts/ralph/
 cp /path/to/ralph/CLAUDE.md scripts/ralph/
 chmod +x scripts/ralph/ralph.sh
 ```
 
-### Option 3: Install skills globally
-
-Copy the skills to your Claude config for use across all projects:
-
-```bash
-cp -r skills/prd ~/.claude/skills/
-cp -r skills/ralph ~/.claude/skills/
-cp -r skills/ralph-init ~/.claude/skills/
-```
-
-### Option 4: Use as Claude Code Marketplace
-
-Add the Ralph marketplace to Claude Code:
-
-```bash
-/plugin marketplace add foxytanuki/ralph
-```
-
-Then install the skills:
-
-```bash
-/plugin install ralph-skills@ralph-marketplace
-```
-
-Available skills after installation:
-- `/prd` - Generate Product Requirements Documents
-- `/ralph` - Convert PRDs to prd.json format
-- `/ralph-init` - Initialize Ralph in a target repository
-
-## Workflow
-
-### 1. Initialize Ralph
-
-```
-/ralph-init
-```
-
-Auto-detects if Ralph is already set up. If not, creates `scripts/ralph/` with all necessary files. If already initialized, shows current status and suggests next steps.
-
-### 2. Create a PRD
-
-```
-/prd [your feature description]
-```
-
-The skill will:
-1. Ask 3-5 clarifying questions
-2. Generate a structured PRD
-3. Save to `tasks/prd-[feature-name].md`
-4. Ask for your confirmation
-5. Run `/codex-review` on the PRD to check quality (ambiguous criteria, oversized stories, missing dependencies)
-6. Refine based on review feedback
-
-### 3. Convert PRD to Ralph format
-
-```
-/ralph convert tasks/prd-[feature-name].md to prd.json
-```
-
-This creates `prd.json` with user stories structured for autonomous execution, including `reviewAfter` flags at phase boundaries.
-
-### 4. Run Ralph
-
-```bash
-./scripts/ralph/ralph.sh
-```
-
-Iterations are calculated automatically from prd.json (remaining stories + review checkpoints + buffer).
-
-With Discord notifications:
-```bash
-# Via environment variable
-DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..." ./scripts/ralph/ralph.sh
-
-# Or via command line
-./scripts/ralph/ralph.sh --webhook "https://discord.com/api/webhooks/..."
-```
-
-Ralph will:
-1. Create a feature branch (from PRD `branchName`)
-2. Pick the highest priority story where `passes: false`
-3. Implement that single story
-4. Run quality checks (typecheck, tests)
-5. Commit if checks pass
-6. Update `prd.json` to mark story as `passes: true`
-7. **If the story has `reviewAfter: true`, run a code review checkpoint in the next iteration**
-8. Append learnings to `progress.txt`
-9. Repeat until all stories pass or max iterations reached
-10. Send Discord notification on completion or max iterations
-
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `ralph.sh` | The bash loop that spawns fresh Claude Code instances |
-| `CLAUDE.md` | Prompt template for Claude Code |
-| `prd.json` | User stories with `passes` status (the task list) |
-| `prd.json.example` | Example PRD format for reference |
-| `progress.txt` | Append-only learnings for future iterations |
-| `skills/prd/` | Skill for generating PRDs |
-| `skills/ralph/` | Skill for converting PRDs to JSON |
-| `skills/ralph-init/` | Skill for initializing Ralph in a target repo |
-| `.claude-plugin/` | Plugin manifest for Claude Code marketplace discovery |
-| `flowchart/` | Interactive visualization of how Ralph works |
-
-## Flowchart
-
-[![Ralph Flowchart](ralph-flowchart.png)](https://snarktank.github.io/ralph/)
-
-**[View Interactive Flowchart](https://snarktank.github.io/ralph/)** - Click through to see each step with animations.
-
-The `flowchart/` directory contains the source code. To run locally:
-
-```bash
-cd flowchart
-npm install
-npm run dev
-```
-
-## Critical Concepts
-
-### Each Iteration = Fresh Context
-
-Each iteration spawns a **new Claude Code instance** with clean context. The only memory between iterations is:
-- Git history (commits from previous iterations)
-- `progress.txt` (learnings and context)
-- `prd.json` (which stories are done)
-
-### Small Tasks
-
-Each PRD item should be small enough to complete in one context window. If a task is too big, the LLM runs out of context before finishing and produces poor code.
-
-Right-sized stories:
-- Add a database column and migration
-- Add a UI component to an existing page
-- Update a server action with new logic
-- Add a filter dropdown to a list
-
-Too big (split these):
-- "Build the entire dashboard"
-- "Add authentication"
-- "Refactor the API"
-
-### AGENTS.md Updates Are Critical
-
-After each iteration, Ralph updates the relevant `AGENTS.md` files with learnings. This is key because Claude Code automatically reads these files, so future iterations (and future human developers) benefit from discovered patterns, gotchas, and conventions.
-
-Examples of what to add to AGENTS.md:
-- Patterns discovered ("this codebase uses X for Y")
-- Gotchas ("do not forget to update Z when changing W")
-- Useful context ("the settings panel is in component X")
-
-### Feedback Loops
-
-Ralph only works if there are feedback loops:
-- Typecheck catches type errors
-- Tests verify behavior
-- CI must stay green (broken code compounds across iterations)
-
-### Browser Verification for UI Stories
-
-Frontend stories must include "Verify in browser using dev-browser skill" in acceptance criteria. Ralph will use the dev-browser skill to navigate to the page, interact with the UI, and confirm changes work.
-
-### Stop Condition
-
-When all stories have `passes: true`, Ralph outputs `<promise>COMPLETE</promise>` and the loop exits.
-
-## Discord Notifications
-
-Ralph can send Discord notifications when:
-- **Complete**: All tasks finished successfully (green embed)
-- **Max Iterations**: Reached limit without completing (red embed)
-
-Configure via:
-- Environment variable: `RALPH_WEBHOOK_URL` (recommended for global config in `.bashrc`/`.zshrc`)
-- Environment variable: `DISCORD_WEBHOOK_URL` (fallback)
-- Command line: `--webhook URL`
-
-## Debugging
-
-Check current state:
-
-```bash
-# See which stories are done
-cat prd.json | jq '.userStories[] | {id, title, passes}'
-
-# See learnings from previous iterations
-cat progress.txt
-
-# Check git history
-git log --oneline -10
-```
-
-## Customizing the Prompt
-
-After copying `CLAUDE.md` to your project, customize it for your project:
-- Add project-specific quality check commands
-- Include codebase conventions
-- Add common gotchas for your stack
+Note: This only sets up the loop runner. `/prd` and `/ralph` skills will not be available — you'll need to create `prd.json` manually (see `prd.json.example`).
 
 ## Archiving
 
